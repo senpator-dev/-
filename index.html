@@ -1,0 +1,820 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Свечка за трафик</title>
+  <style>
+    :root {
+      --bg: #0b0b10;
+      --card: rgba(255, 255, 255, 0.075);
+      --card2: rgba(255, 255, 255, 0.052);
+      --line: rgba(255, 255, 255, 0.12);
+      --text: #f6f1e8;
+      --muted: rgba(246, 241, 232, 0.62);
+      --soft: rgba(246, 241, 232, 0.36);
+      --gold: #ffd37a;
+      --gold2: #ff9f43;
+      --green: #95f0bd;
+      --danger: #ff8d8d;
+      --shadow: rgba(0, 0, 0, 0.35);
+    }
+
+    * { box-sizing: border-box; }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 900px;
+      background:
+        radial-gradient(circle at 50% 18%, rgba(255, 202, 116, 0.20), transparent 32%),
+        radial-gradient(circle at 15% 76%, rgba(149, 240, 189, 0.10), transparent 28%),
+        radial-gradient(circle at 82% 70%, rgba(255, 159, 67, 0.08), transparent 28%),
+        var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      overflow-x: hidden;
+    }
+
+    button,
+    input { font: inherit; }
+
+    .app-shell {
+      width: 100%;
+      min-height: 860px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 22px 16px 90px;
+    }
+
+    .app {
+      width: min(980px, 100%);
+      display: grid;
+      grid-template-columns: minmax(310px, 430px) minmax(300px, 1fr);
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,0.082), rgba(255,255,255,0.045));
+      border-radius: 34px;
+      box-shadow: 0 24px 90px var(--shadow);
+      backdrop-filter: blur(20px);
+    }
+
+    .main-panel {
+      padding: 30px 26px 24px;
+      min-height: 680px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .main-panel::before {
+      content: "";
+      position: absolute;
+      inset: -1px;
+      background: radial-gradient(circle at 50% 28%, rgba(255, 211, 122, 0.12), transparent 36%);
+      pointer-events: none;
+    }
+
+    .top,
+    .middle,
+    .bottom { position: relative; z-index: 1; }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      font-size: 12px;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: var(--soft);
+      font-weight: 800;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(34px, 5vw, 56px);
+      line-height: .93;
+      letter-spacing: -0.07em;
+      font-weight: 900;
+    }
+
+    .subtitle {
+      max-width: 330px;
+      margin: 14px auto 0;
+      font-size: 15px;
+      line-height: 1.45;
+      color: var(--muted);
+    }
+
+    .candle-wrap {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 16px auto 10px;
+      width: 220px;
+      height: 260px;
+      cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      transform: translateZ(0);
+    }
+
+    .aura {
+      position: absolute;
+      width: 190px;
+      height: 190px;
+      border-radius: 999px;
+      background: radial-gradient(circle, rgba(255,211,122,.24), rgba(255,159,67,.08) 42%, transparent 70%);
+      filter: blur(2px);
+      transform: translateY(-28px);
+      animation: breathe 3.7s ease-in-out infinite;
+      opacity: .92;
+    }
+
+    .candle-wrap.off .aura,
+    .candle-wrap.off .flame,
+    .candle-wrap.off .glow { opacity: 0; animation: none; }
+
+    .flame {
+      position: absolute;
+      top: 31px;
+      left: 50%;
+      width: 50px;
+      height: 76px;
+      transform: translateX(-50%);
+      background: radial-gradient(circle at 50% 76%, #fff6d9 0 13%, #ffd37a 18% 41%, #ff8d35 58%, rgba(255,141,53,0) 73%);
+      border-radius: 54% 46% 58% 42% / 66% 62% 38% 34%;
+      filter: drop-shadow(0 0 22px rgba(255, 180, 80, .65));
+      transform-origin: 50% 100%;
+      animation: flame 1.38s ease-in-out infinite alternate;
+    }
+
+    .wick {
+      position: absolute;
+      top: 92px;
+      width: 6px;
+      height: 24px;
+      border-radius: 999px;
+      background: #1b1410;
+      z-index: 2;
+    }
+
+    .body {
+      position: absolute;
+      bottom: 32px;
+      width: 98px;
+      height: 145px;
+      border-radius: 24px 24px 18px 18px;
+      background:
+        linear-gradient(90deg, rgba(255,255,255,.48), rgba(255,255,255,.14) 24%, rgba(255,255,255,.28) 55%, rgba(0,0,0,.08)),
+        linear-gradient(180deg, #fff8e9, #e9d7b7);
+      box-shadow: inset 0 -20px 38px rgba(87, 48, 0, .08), 0 22px 52px rgba(0,0,0,.26);
+    }
+
+    .body::before {
+      content: "";
+      position: absolute;
+      top: -10px;
+      left: 0;
+      width: 100%;
+      height: 27px;
+      border-radius: 50%;
+      background: linear-gradient(180deg, #fffdf6, #ead9bc);
+      border: 1px solid rgba(108, 73, 28, .10);
+    }
+
+    .body::after {
+      content: "трафик";
+      position: absolute;
+      left: 14px;
+      right: 14px;
+      top: 56px;
+      padding: 8px 0;
+      border-radius: 999px;
+      background: rgba(11,11,16,.08);
+      color: rgba(46, 32, 19, .52);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .plate {
+      position: absolute;
+      bottom: 18px;
+      width: 168px;
+      height: 28px;
+      border-radius: 50%;
+      background: radial-gradient(ellipse at center, rgba(255,255,255,.25), rgba(255,255,255,.08) 45%, rgba(0,0,0,.22));
+      filter: blur(.1px);
+    }
+
+    .click-pop {
+      position: absolute;
+      pointer-events: none;
+      color: var(--gold);
+      font-size: 22px;
+      font-weight: 900;
+      text-shadow: 0 5px 20px rgba(0,0,0,.4);
+      animation: pop 750ms ease forwards;
+      z-index: 10;
+    }
+
+    .stats {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .stat {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.045);
+      border-radius: 20px;
+      padding: 13px 12px;
+    }
+
+    .label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .13em;
+      color: var(--soft);
+      font-weight: 800;
+    }
+
+    .value {
+      margin-top: 6px;
+      font-size: 24px;
+      line-height: 1;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .primary {
+      width: 100%;
+      min-height: 54px;
+      margin-top: 14px;
+      border: 0;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #fff3c7, #ffbd63 55%, #ff9f43);
+      color: #24170d;
+      box-shadow: 0 16px 36px rgba(255, 159, 67, .22);
+      font-size: 15px;
+      font-weight: 950;
+      letter-spacing: -0.01em;
+      cursor: pointer;
+      transition: transform .15s ease, filter .15s ease;
+    }
+
+    .primary:hover { transform: translateY(-1px); filter: brightness(1.04); }
+    .primary:active { transform: translateY(1px) scale(.99); }
+
+    .hint {
+      margin: 10px 0 0;
+      font-size: 12px;
+      color: rgba(246, 241, 232, .42);
+    }
+
+    .shop-panel {
+      padding: 22px;
+      min-height: 680px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .shop-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: flex-start;
+      margin-bottom: 14px;
+    }
+
+    .shop-title {
+      margin: 0;
+      font-size: 24px;
+      letter-spacing: -0.05em;
+      font-weight: 950;
+    }
+
+    .shop-note {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .badge {
+      flex: 0 0 auto;
+      border: 1px solid rgba(149, 240, 189, .25);
+      color: var(--green);
+      background: rgba(149, 240, 189, .075);
+      border-radius: 999px;
+      padding: 8px 10px;
+      font-size: 12px;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .shop-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .upgrade {
+      border: 1px solid var(--line);
+      background: var(--card2);
+      border-radius: 20px;
+      padding: 13px;
+      min-height: 116px;
+      color: var(--text);
+      cursor: pointer;
+      text-align: left;
+      transition: transform .15s ease, border-color .15s ease, background .15s ease, opacity .15s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .upgrade:hover {
+      transform: translateY(-1px);
+      border-color: rgba(255, 211, 122, .34);
+      background: rgba(255,255,255,.075);
+    }
+
+    .upgrade:active { transform: translateY(1px) scale(.99); }
+    .upgrade.locked { opacity: .54; cursor: not-allowed; }
+
+    .upgrade-name {
+      font-size: 14px;
+      line-height: 1.12;
+      font-weight: 950;
+      letter-spacing: -0.025em;
+      padding-right: 28px;
+    }
+
+    .upgrade-desc {
+      min-height: 30px;
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.25;
+    }
+
+    .upgrade-foot {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-top: 11px;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .cost { color: var(--gold); }
+    .owned { color: rgba(246,241,232,.48); font-variant-numeric: tabular-nums; }
+
+    .upgrade .emoji {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      font-size: 18px;
+      filter: drop-shadow(0 8px 18px rgba(0,0,0,.25));
+    }
+
+    .mini-log {
+      min-height: 20px;
+      margin-top: 13px;
+      color: rgba(246,241,232,.50);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .reset-row {
+      margin-top: auto;
+      padding-top: 14px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .ghost {
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.035);
+      color: rgba(246,241,232,.46);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .ghost:hover { color: rgba(246,241,232,.8); border-color: rgba(255,255,255,.18); }
+
+    @keyframes flame {
+      0% { transform: translateX(-50%) rotate(-2.8deg) scale(0.96); }
+      100% { transform: translateX(-50%) rotate(2.4deg) scale(1.04); }
+    }
+
+    @keyframes breathe {
+      0%, 100% { transform: translateY(-28px) scale(.97); opacity: .76; }
+      50% { transform: translateY(-28px) scale(1.06); opacity: 1; }
+    }
+
+    @keyframes pop {
+      0% { opacity: 0; transform: translate(-50%, 0) scale(.7); }
+      14% { opacity: 1; }
+      100% { opacity: 0; transform: translate(-50%, -70px) scale(1.1); }
+    }
+
+    @media (max-width: 820px) {
+      html, body { min-height: 1180px; }
+      .app-shell {
+        min-height: 1120px;
+        align-items: flex-start;
+        padding-top: 18px;
+      }
+      .app {
+        grid-template-columns: 1fr;
+        max-width: 470px;
+      }
+      .main-panel, .shop-panel { min-height: auto; }
+      .main-panel { padding-top: 26px; }
+    }
+
+    @media (max-width: 440px) {
+      html, body { min-height: 1320px; }
+      .app-shell { min-height: 1280px; padding: 12px 10px 110px; }
+      .main-panel, .shop-panel { border-radius: 28px; }
+      .shop-list { grid-template-columns: 1fr; }
+      .stats { grid-template-columns: 1fr 1fr; }
+      .candle-wrap { transform: scale(.92); margin: 0 auto; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app-shell">
+    <section class="app" aria-label="Поставить свечку за трафик">
+      <article class="panel main-panel">
+        <div class="top">
+          <p class="eyebrow">traffic ritual</p>
+          <h1>Свечка<br>за трафик</h1>
+          <p class="subtitle">Один клик — одна молитва алгоритмам. Без лишних функций, только огонь и вера в нормальный апрув.</p>
+        </div>
+
+        <div class="middle">
+          <div id="candle" class="candle-wrap off" role="button" tabindex="0" aria-label="Кликнуть по свечке">
+            <div class="aura"></div>
+            <div class="flame"></div>
+            <div class="wick"></div>
+            <div class="body"></div>
+            <div class="plate"></div>
+          </div>
+        </div>
+
+        <div class="bottom">
+          <div class="stats">
+            <div id="strengthBox" class="stat" role="button" tabindex="0" aria-label="Усилить молитву">
+              <div class="label">сила молитвы</div>
+              <div class="value" id="strength">0</div>
+            </div>
+            <div class="stat">
+              <div class="label">горит ещё</div>
+              <div class="value" id="timer">—</div>
+            </div>
+          </div>
+          <button id="mainBtn" class="primary">поставить свечку на 2 часа</button>
+          <p class="hint" id="hint">когда свечка горит, кликай по ней и покупай апгрейды</p>
+        </div>
+      </article>
+
+      <aside class="panel shop-panel">
+        <div class="shop-head">
+          <div>
+            <h2 class="shop-title">Магазинчик</h2>
+            <p class="shop-note">Медиабаерские бусты 2026. Покупаются за силу молитвы.</p>
+          </div>
+          <div class="badge" id="powerBadge">+1 / клик</div>
+        </div>
+
+        <div class="shop-list" id="shop"></div>
+        <div class="mini-log" id="log">Поставь свечку, дальше начинается магия.</div>
+
+        <div class="reset-row">
+          <button class="ghost" id="resetBtn" title="Сбросить прогресс">сбросить ритуал</button>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    const STORAGE_KEY = "trafficCandleV3";
+    const TWO_HOURS = 2 * 60 * 60 * 1000;
+
+    const upgrades = [
+      {
+        id: "pixelWarmup",
+        emoji: "🔥",
+        name: "Разогрев пикселя",
+        desc: "+1 к силе за каждый клик",
+        baseCost: 25,
+        click: 1,
+        passive: 0
+      },
+      {
+        id: "cleanNaming",
+        emoji: "🏷️",
+        name: "Чистый нейминг",
+        desc: "+0.2 силы в секунду",
+        baseCost: 80,
+        click: 0,
+        passive: 0.2
+      },
+      {
+        id: "creativePack",
+        emoji: "🎨",
+        name: "Свежий крео-пак",
+        desc: "+3 к силе за клик",
+        baseCost: 180,
+        click: 3,
+        passive: 0
+      },
+      {
+        id: "utmAutofix",
+        emoji: "🧷",
+        name: "Автофикс UTM",
+        desc: "+0.7 силы в секунду",
+        baseCost: 420,
+        click: 0,
+        passive: 0.7
+      },
+      {
+        id: "budgetPacing",
+        emoji: "📈",
+        name: "Пейсинг бюджета",
+        desc: "+8 к силе за клик",
+        baseCost: 950,
+        click: 8,
+        passive: 0
+      },
+      {
+        id: "accountKarma",
+        emoji: "🛡️",
+        name: "Карма аккаунта",
+        desc: "+2.5 силы в секунду",
+        baseCost: 1800,
+        click: 0,
+        passive: 2.5
+      },
+      {
+        id: "aiBundle",
+        emoji: "🤖",
+        name: "AI-сборщик связок",
+        desc: "+22 к силе за клик",
+        baseCost: 4200,
+        click: 22,
+        passive: 0
+      },
+      {
+        id: "nightFarm",
+        emoji: "🌙",
+        name: "Ночной фарм удачи",
+        desc: "+9 силы в секунду",
+        baseCost: 9000,
+        click: 0,
+        passive: 9
+      }
+    ];
+
+    const defaultState = () => ({
+      endAt: 0,
+      strength: 0,
+      owned: {},
+      lastTick: Date.now()
+    });
+
+    let state = loadState();
+
+    const el = {
+      candle: document.getElementById("candle"),
+      strengthBox: document.getElementById("strengthBox"),
+      strength: document.getElementById("strength"),
+      timer: document.getElementById("timer"),
+      mainBtn: document.getElementById("mainBtn"),
+      hint: document.getElementById("hint"),
+      shop: document.getElementById("shop"),
+      log: document.getElementById("log"),
+      powerBadge: document.getElementById("powerBadge"),
+      resetBtn: document.getElementById("resetBtn")
+    };
+
+    function loadState() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        return parsed && typeof parsed === "object" ? { ...defaultState(), ...parsed } : defaultState();
+      } catch (_) {
+        return defaultState();
+      }
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function isActive() {
+      return Date.now() < Number(state.endAt || 0);
+    }
+
+    function getOwned(id) {
+      return Number(state.owned?.[id] || 0);
+    }
+
+    function getCost(upgrade) {
+      const owned = getOwned(upgrade.id);
+      return Math.floor(upgrade.baseCost * Math.pow(1.62, owned));
+    }
+
+    function clickPower() {
+      return upgrades.reduce((sum, item) => sum + getOwned(item.id) * item.click, 1);
+    }
+
+    function passivePower() {
+      return upgrades.reduce((sum, item) => sum + getOwned(item.id) * item.passive, 0);
+    }
+
+    function formatNumber(num) {
+      const value = Math.floor(Number(num) || 0);
+      return value.toLocaleString("ru-RU");
+    }
+
+    function formatTimer(ms) {
+      if (ms <= 0) return "—";
+      const total = Math.ceil(ms / 1000);
+      const h = Math.floor(total / 3600);
+      const m = Math.floor((total % 3600) / 60);
+      const s = total % 60;
+      if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+      return `${m}:${String(s).padStart(2, "0")}`;
+    }
+
+    function setLog(text) {
+      el.log.textContent = text;
+    }
+
+    function renderShop() {
+      el.shop.innerHTML = "";
+      upgrades.forEach((upgrade) => {
+        const cost = getCost(upgrade);
+        const owned = getOwned(upgrade.id);
+        const canBuy = isActive() && state.strength >= cost;
+
+        const btn = document.createElement("button");
+        btn.className = `upgrade ${canBuy ? "" : "locked"}`;
+        btn.innerHTML = `
+          <span class="emoji">${upgrade.emoji}</span>
+          <div class="upgrade-name">${upgrade.name}</div>
+          <div class="upgrade-desc">${upgrade.desc}</div>
+          <div class="upgrade-foot">
+            <span class="cost">${formatNumber(cost)}</span>
+            <span class="owned">ур. ${owned}</span>
+          </div>
+        `;
+        btn.addEventListener("click", () => buyUpgrade(upgrade));
+        el.shop.appendChild(btn);
+      });
+    }
+
+    function render() {
+      const active = isActive();
+      const left = Math.max(0, Number(state.endAt || 0) - Date.now());
+
+      el.candle.classList.toggle("off", !active);
+      el.strength.textContent = formatNumber(state.strength);
+      el.timer.textContent = formatTimer(left);
+      el.powerBadge.textContent = `+${formatNumber(clickPower())} / клик`;
+
+      if (active) {
+        el.mainBtn.textContent = "усилить молитву";
+        el.hint.textContent = passivePower() > 0
+          ? `пассивно капает +${passivePower().toFixed(1).replace(".", ",")} силы/сек`
+          : "кликай по свечке, чтобы накопить на первый буст";
+      } else {
+        el.mainBtn.textContent = "поставить свечку на 2 часа";
+        el.hint.textContent = "после 2 часов свечку можно поставить заново";
+      }
+
+      renderShop();
+    }
+
+    function startCandle() {
+      state.endAt = Date.now() + TWO_HOURS;
+      state.lastTick = Date.now();
+      saveState();
+      setLog("Свечка горит. Да будет дешёвый клик и живой трафик.");
+      render();
+    }
+
+    function addStrength(amount, sourceElement) {
+      if (!isActive()) {
+        startCandle();
+        return;
+      }
+      const gain = Math.max(1, Math.floor(amount));
+      state.strength += gain;
+      saveState();
+      pop(`+${formatNumber(gain)}`, sourceElement || el.candle);
+      render();
+    }
+
+    function buyUpgrade(upgrade) {
+      if (!isActive()) {
+        setLog("Сначала поставь свечку, магазинчик проснётся вместе с ней.");
+        return;
+      }
+      const cost = getCost(upgrade);
+      if (state.strength < cost) {
+        setLog(`Не хватает силы: нужно ${formatNumber(cost)}.`);
+        return;
+      }
+      state.strength -= cost;
+      state.owned[upgrade.id] = getOwned(upgrade.id) + 1;
+      saveState();
+      setLog(`${upgrade.name} куплен. Алгоритмы чуть добрее.`);
+      render();
+    }
+
+    function pop(text, target) {
+      const rect = target.getBoundingClientRect();
+      const parentRect = document.body.getBoundingClientRect();
+      const node = document.createElement("div");
+      node.className = "click-pop";
+      node.textContent = text;
+      node.style.left = `${rect.left - parentRect.left + rect.width / 2 + (Math.random() * 48 - 24)}px`;
+      node.style.top = `${rect.top - parentRect.top + rect.height * 0.24 + (Math.random() * 22 - 11)}px`;
+      document.body.appendChild(node);
+      setTimeout(() => node.remove(), 820);
+    }
+
+    function tick() {
+      const now = Date.now();
+      const active = isActive();
+
+      if (active) {
+        const elapsed = Math.max(0, (now - Number(state.lastTick || now)) / 1000);
+        const passive = passivePower();
+        if (passive > 0 && elapsed > 0) {
+          state.strength += passive * elapsed;
+        }
+      }
+
+      state.lastTick = now;
+      saveState();
+      render();
+    }
+
+    el.candle.addEventListener("click", () => addStrength(clickPower(), el.candle));
+    el.strengthBox.addEventListener("click", () => addStrength(clickPower(), el.strengthBox));
+    el.mainBtn.addEventListener("click", () => {
+      if (isActive()) addStrength(clickPower(), el.mainBtn);
+      else startCandle();
+    });
+
+    el.candle.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        addStrength(clickPower(), el.candle);
+      }
+    });
+
+    el.strengthBox.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        addStrength(clickPower(), el.strengthBox);
+      }
+    });
+
+    el.resetBtn.addEventListener("click", () => {
+      state = defaultState();
+      saveState();
+      setLog("Ритуал очищен. Можно начинать заново.");
+      render();
+    });
+
+    window.addEventListener("beforeunload", () => {
+      state.lastTick = Date.now();
+      saveState();
+    });
+
+    tick();
+    setInterval(tick, 1000);
+  </script>
+</body>
+</html>
