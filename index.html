@@ -1,0 +1,903 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Свечка за трафик</title>
+  <style>
+    :root {
+      --bg: #0b0b10;
+      --card: rgba(255, 255, 255, 0.075);
+      --card2: rgba(255, 255, 255, 0.052);
+      --line: rgba(255, 255, 255, 0.12);
+      --text: #f6f1e8;
+      --muted: rgba(246, 241, 232, 0.62);
+      --soft: rgba(246, 241, 232, 0.36);
+      --gold: #ffd37a;
+      --gold2: #ff9f43;
+      --green: #95f0bd;
+      --shadow: rgba(0, 0, 0, 0.35);
+    }
+
+    * { box-sizing: border-box; }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 930px;
+      background:
+        radial-gradient(circle at 50% 12%, rgba(255, 202, 116, 0.20), transparent 30%),
+        radial-gradient(circle at 12% 78%, rgba(149, 240, 189, 0.10), transparent 26%),
+        radial-gradient(circle at 86% 74%, rgba(255, 159, 67, 0.08), transparent 26%),
+        var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      overflow-x: hidden;
+    }
+
+    button { font: inherit; }
+
+    .app-shell {
+      width: 100%;
+      min-height: 900px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 18px 16px 96px;
+    }
+
+    .app {
+      width: min(980px, 100%);
+      display: grid;
+      grid-template-columns: minmax(310px, 430px) minmax(300px, 1fr);
+      gap: 18px;
+      align-items: stretch;
+      margin: 0 auto;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,0.082), rgba(255,255,255,0.045));
+      border-radius: 34px;
+      box-shadow: 0 24px 90px var(--shadow);
+      backdrop-filter: blur(20px);
+    }
+
+    .main-panel {
+      padding: 26px 26px 24px;
+      min-height: 690px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .main-panel::before {
+      content: "";
+      position: absolute;
+      inset: -1px;
+      background: radial-gradient(circle at 50% 28%, rgba(255, 211, 122, 0.12), transparent 36%);
+      pointer-events: none;
+    }
+
+    .top,
+    .middle,
+    .bottom { position: relative; z-index: 1; }
+    .middle { width: 100%; display: grid; place-items: center; }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      font-size: 12px;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+      color: var(--soft);
+      font-weight: 800;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(34px, 5vw, 56px);
+      line-height: .93;
+      letter-spacing: -0.07em;
+      font-weight: 900;
+    }
+
+    .subtitle {
+      max-width: 330px;
+      margin: 14px auto 0;
+      font-size: 15px;
+      line-height: 1.45;
+      color: var(--muted);
+    }
+
+    .candle-wrap {
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin: 8px auto 2px;
+      width: 230px;
+      height: 274px;
+      cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      transform: translateZ(0);
+    }
+
+    .aura {
+      position: absolute;
+      width: 205px;
+      height: 205px;
+      border-radius: 999px;
+      background: radial-gradient(circle, rgba(255,211,122,.26), rgba(255,159,67,.08) 43%, transparent 72%);
+      filter: blur(2px);
+      transform: translateY(-34px);
+      animation: breathe 3.7s ease-in-out infinite;
+      opacity: .94;
+    }
+
+    .candle-svg {
+      position: relative;
+      z-index: 2;
+      width: 220px;
+      height: 270px;
+      overflow: visible;
+      filter: drop-shadow(0 26px 42px rgba(0,0,0,.28));
+    }
+
+    .flame-shape {
+      transform-origin: 110px 82px;
+      animation: flameSvg 1.25s ease-in-out infinite alternate;
+      filter: drop-shadow(0 0 22px rgba(255, 177, 77, .72));
+    }
+
+    .flame-inner {
+      transform-origin: 110px 87px;
+      animation: innerFlame 1.05s ease-in-out infinite alternate;
+    }
+
+    .candle-wrap:hover .candle-svg { transform: translateY(-1px); }
+    .candle-wrap:active .candle-svg { transform: translateY(1px) scale(.992); }
+
+    .candle-wrap.off .aura,
+    .candle-wrap.off .flame-shape,
+    .candle-wrap.off .flame-inner { opacity: 0; animation: none; }
+
+    .candle-wrap.off .wick-line { opacity: .55; }
+
+    .click-pop,
+    .event-pop {
+      position: absolute;
+      pointer-events: none;
+      text-shadow: 0 5px 20px rgba(0,0,0,.45);
+      z-index: 20;
+      white-space: nowrap;
+    }
+
+    .click-pop {
+      color: var(--gold);
+      font-size: 22px;
+      font-weight: 950;
+      animation: pop 760ms ease forwards;
+    }
+
+    .event-pop {
+      color: #fff7df;
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      padding: 9px 12px;
+      border: 1px solid rgba(255,211,122,.28);
+      border-radius: 999px;
+      background: rgba(16, 16, 22, .72);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 16px 36px rgba(0,0,0,.28);
+      animation: eventPop 1700ms ease forwards;
+    }
+
+    .stats {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .stat {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.045);
+      border-radius: 20px;
+      padding: 13px 12px;
+    }
+
+    #strengthBox { cursor: pointer; }
+    #strengthBox:hover { border-color: rgba(255, 211, 122, .28); }
+
+    .label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .13em;
+      color: var(--soft);
+      font-weight: 800;
+    }
+
+    .value {
+      margin-top: 6px;
+      font-size: 24px;
+      line-height: 1;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .primary {
+      width: 100%;
+      min-height: 54px;
+      margin-top: 14px;
+      border: 0;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #fff3c7, #ffbd63 55%, #ff9f43);
+      color: #24170d;
+      box-shadow: 0 16px 36px rgba(255, 159, 67, .22);
+      font-size: 15px;
+      font-weight: 950;
+      letter-spacing: -0.01em;
+      cursor: pointer;
+      transition: transform .15s ease, filter .15s ease;
+    }
+
+    .primary:hover { transform: translateY(-1px); filter: brightness(1.04); }
+    .primary:active { transform: translateY(1px) scale(.99); }
+
+    .hint {
+      margin: 10px 0 0;
+      font-size: 12px;
+      color: rgba(246, 241, 232, .42);
+    }
+
+    .shop-panel {
+      padding: 22px;
+      min-height: 690px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .shop-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: flex-start;
+      margin-bottom: 14px;
+    }
+
+    .shop-title {
+      margin: 0;
+      font-size: 24px;
+      letter-spacing: -0.05em;
+      font-weight: 950;
+    }
+
+    .shop-note {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .badge {
+      flex: 0 0 auto;
+      border: 1px solid rgba(149, 240, 189, .25);
+      color: var(--green);
+      background: rgba(149, 240, 189, .075);
+      border-radius: 999px;
+      padding: 8px 10px;
+      font-size: 12px;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .shop-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .upgrade {
+      border: 1px solid var(--line);
+      background: var(--card2);
+      border-radius: 20px;
+      padding: 13px;
+      min-height: 116px;
+      color: var(--text);
+      cursor: pointer;
+      text-align: left;
+      transition: transform .15s ease, border-color .15s ease, background .15s ease, opacity .15s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .upgrade:hover {
+      transform: translateY(-1px);
+      border-color: rgba(255, 211, 122, .34);
+      background: rgba(255,255,255,.075);
+    }
+
+    .upgrade:active { transform: translateY(1px) scale(.99); }
+    .upgrade.locked { opacity: .54; cursor: not-allowed; }
+
+    .upgrade-name {
+      font-size: 14px;
+      line-height: 1.12;
+      font-weight: 950;
+      letter-spacing: -0.025em;
+      padding-right: 28px;
+    }
+
+    .upgrade-desc {
+      min-height: 30px;
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.25;
+    }
+
+    .upgrade-foot {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-top: 11px;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .cost { color: var(--gold); }
+    .owned { color: rgba(246,241,232,.48); font-variant-numeric: tabular-nums; }
+
+    .upgrade .emoji {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      font-size: 18px;
+      filter: drop-shadow(0 8px 18px rgba(0,0,0,.25));
+    }
+
+    .mini-log {
+      min-height: 20px;
+      margin-top: 13px;
+      color: rgba(246,241,232,.50);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .reset-row {
+      margin-top: auto;
+      padding-top: 14px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .ghost {
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.035);
+      color: rgba(246,241,232,.46);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .ghost:hover { color: rgba(246,241,232,.8); border-color: rgba(255,255,255,.18); }
+
+    @keyframes flameSvg {
+      0% { transform: rotate(-2.4deg) scale(.985); }
+      100% { transform: rotate(2.2deg) scale(1.025); }
+    }
+
+    @keyframes innerFlame {
+      0% { transform: scale(.96); opacity: .86; }
+      100% { transform: scale(1.05); opacity: 1; }
+    }
+
+    @keyframes breathe {
+      0%, 100% { transform: translateY(-34px) scale(.97); opacity: .78; }
+      50% { transform: translateY(-34px) scale(1.06); opacity: 1; }
+    }
+
+    @keyframes pop {
+      0% { opacity: 0; transform: translate(-50%, 0) scale(.7); }
+      14% { opacity: 1; }
+      100% { opacity: 0; transform: translate(-50%, -70px) scale(1.1); }
+    }
+
+    @keyframes eventPop {
+      0% { opacity: 0; transform: translate(-50%, 10px) scale(.92); }
+      12% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+      78% { opacity: 1; transform: translate(-50%, -28px) scale(1); }
+      100% { opacity: 0; transform: translate(-50%, -48px) scale(.98); }
+    }
+
+    @media (max-width: 820px) {
+      html, body { min-height: 1200px; }
+      .app-shell {
+        min-height: 1160px;
+        align-items: flex-start;
+        padding-top: 18px;
+      }
+      .app {
+        grid-template-columns: 1fr;
+        max-width: 470px;
+      }
+      .main-panel, .shop-panel { min-height: auto; }
+      .main-panel { padding-top: 26px; }
+    }
+
+    @media (max-width: 440px) {
+      html, body { min-height: 1360px; }
+      .app-shell { min-height: 1320px; padding: 12px 10px 120px; }
+      .main-panel, .shop-panel { border-radius: 28px; }
+      .shop-list { grid-template-columns: 1fr; }
+      .stats { grid-template-columns: 1fr 1fr; }
+      .candle-wrap { transform: scale(.92); margin: -2px auto; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app-shell">
+    <section class="app" aria-label="Поставить свечку за трафик">
+      <article class="panel main-panel">
+        <div class="top">
+          <p class="eyebrow">traffic ritual</p>
+          <h1>Свечка<br>за трафик</h1>
+          <p class="subtitle">Один клик — одна молитва алгоритмам. Без лишних функций, только огонь и вера в нормальный апрув.</p>
+        </div>
+
+        <div class="middle">
+          <div id="candle" class="candle-wrap off" role="button" tabindex="0" aria-label="Кликнуть по свечке">
+            <div class="aura"></div>
+            <svg class="candle-svg" viewBox="0 0 220 270" aria-hidden="true">
+              <defs>
+                <radialGradient id="plateGradient" cx="50%" cy="50%" r="60%">
+                  <stop offset="0%" stop-color="rgba(255,255,255,.32)"/>
+                  <stop offset="46%" stop-color="rgba(255,255,255,.11)"/>
+                  <stop offset="100%" stop-color="rgba(0,0,0,.25)"/>
+                </radialGradient>
+                <linearGradient id="waxGradient" x1="0" x2="1" y1="0" y2="0">
+                  <stop offset="0%" stop-color="#fff7e8"/>
+                  <stop offset="22%" stop-color="#f1dfbd"/>
+                  <stop offset="52%" stop-color="#fff6e6"/>
+                  <stop offset="78%" stop-color="#ead4af"/>
+                  <stop offset="100%" stop-color="#d8bd91"/>
+                </linearGradient>
+                <linearGradient id="topWax" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0%" stop-color="#fffdf6"/>
+                  <stop offset="100%" stop-color="#ead7b6"/>
+                </linearGradient>
+                <radialGradient id="flameOuter" cx="50%" cy="72%" r="70%">
+                  <stop offset="0%" stop-color="#fff8d8"/>
+                  <stop offset="25%" stop-color="#ffd37a"/>
+                  <stop offset="58%" stop-color="#ff9339"/>
+                  <stop offset="100%" stop-color="rgba(255,147,57,0)"/>
+                </radialGradient>
+                <radialGradient id="flameInner" cx="50%" cy="70%" r="62%">
+                  <stop offset="0%" stop-color="#fffdf2"/>
+                  <stop offset="58%" stop-color="#ffe08e"/>
+                  <stop offset="100%" stop-color="rgba(255,224,142,0)"/>
+                </radialGradient>
+              </defs>
+
+              <ellipse cx="110" cy="239" rx="78" ry="16" fill="url(#plateGradient)"/>
+              <g class="flame-shape">
+                <path d="M110 20 C137 54 129 89 110 106 C91 89 82 55 110 20 Z" fill="url(#flameOuter)"/>
+              </g>
+              <g class="flame-inner">
+                <path d="M110 48 C123 68 119 88 110 98 C101 88 97 68 110 48 Z" fill="url(#flameInner)"/>
+              </g>
+              <path class="wick-line" d="M110 102 C108 111 109 119 110 128" stroke="#20140d" stroke-width="5" stroke-linecap="round" fill="none"/>
+              <rect x="70" y="124" width="80" height="112" rx="18" fill="url(#waxGradient)"/>
+              <ellipse cx="110" cy="124" rx="40" ry="13" fill="url(#topWax)" stroke="rgba(108,73,28,.13)"/>
+              <path d="M83 126 C87 133 92 132 95 126" stroke="rgba(123,82,35,.18)" stroke-width="3" stroke-linecap="round" fill="none"/>
+              <path d="M130 126 C134 135 141 132 143 126" stroke="rgba(123,82,35,.15)" stroke-width="3" stroke-linecap="round" fill="none"/>
+              <path d="M85 146 C85 163 82 174 90 182 C98 170 93 161 96 146" fill="rgba(255,255,255,.22)"/>
+              <path d="M128 140 C126 159 130 169 122 178 C116 164 123 154 119 140" fill="rgba(91,53,18,.055)"/>
+              <ellipse cx="110" cy="236" rx="39" ry="9" fill="rgba(83,48,12,.10)"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="bottom">
+          <div class="stats">
+            <div id="strengthBox" class="stat" role="button" tabindex="0" aria-label="Усилить молитву">
+              <div class="label">сила молитвы</div>
+              <div class="value" id="strength">0</div>
+            </div>
+            <div class="stat">
+              <div class="label">горит ещё</div>
+              <div class="value" id="timer">—</div>
+            </div>
+          </div>
+          <button id="mainBtn" class="primary">поставить свечку на 2 часа</button>
+          <p class="hint" id="hint">когда свечка горит, кликай по ней и покупай апгрейды</p>
+        </div>
+      </article>
+
+      <aside class="panel shop-panel">
+        <div class="shop-head">
+          <div>
+            <h2 class="shop-title">Магазинчик</h2>
+            <p class="shop-note">Медиабаерские бусты 2026. Покупаются за силу молитвы.</p>
+          </div>
+          <div class="badge" id="powerBadge">+1 / клик</div>
+        </div>
+
+        <div class="shop-list" id="shop"></div>
+        <div class="mini-log" id="log">Поставь свечку, дальше начинается магия.</div>
+
+        <div class="reset-row">
+          <button class="ghost" id="resetBtn" title="Сбросить прогресс">сбросить ритуал</button>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    const STORAGE_KEY = "trafficCandleV4";
+    const TWO_HOURS = 2 * 60 * 60 * 1000;
+
+    const ritualPhrases = [
+      "прогрели кабинет",
+      "накинули 30 лайков на объяву",
+      "пиксель поймал сигнал",
+      "алгоритм стал чуть добрее",
+      "крео перестало пахнуть шаблоном",
+      "CPM сделал вид, что он нормальный",
+      "UTM не отвалилась",
+      "связка начала дышать",
+      "аккаунт получил +5 к карме",
+      "бюджет потёк ровнее",
+      "плейсменты перестали чудить",
+      "ретаргетинг проснулся",
+      "прогрев прошёл без лишнего шума",
+      "объява набрала социальный вес",
+      "стата перестала смотреть в пол"
+    ];
+
+    const upgrades = [
+      {
+        id: "pixelWarmup",
+        emoji: "🔥",
+        name: "Разогрев пикселя",
+        desc: "+1 к силе за каждый клик",
+        baseCost: 25,
+        click: 1,
+        passive: 0
+      },
+      {
+        id: "cleanNaming",
+        emoji: "🏷️",
+        name: "Чистый нейминг",
+        desc: "+0.2 силы в секунду",
+        baseCost: 80,
+        click: 0,
+        passive: 0.2
+      },
+      {
+        id: "creativePack",
+        emoji: "🎨",
+        name: "Свежий крео-пак",
+        desc: "+3 к силе за клик",
+        baseCost: 180,
+        click: 3,
+        passive: 0
+      },
+      {
+        id: "utmAutofix",
+        emoji: "🧷",
+        name: "Автофикс UTM",
+        desc: "+0.7 силы в секунду",
+        baseCost: 420,
+        click: 0,
+        passive: 0.7
+      },
+      {
+        id: "budgetPacing",
+        emoji: "📈",
+        name: "Пейсинг бюджета",
+        desc: "+8 к силе за клик",
+        baseCost: 950,
+        click: 8,
+        passive: 0
+      },
+      {
+        id: "accountKarma",
+        emoji: "🛡️",
+        name: "Карма аккаунта",
+        desc: "+2.5 силы в секунду",
+        baseCost: 1800,
+        click: 0,
+        passive: 2.5
+      },
+      {
+        id: "aiBundle",
+        emoji: "🤖",
+        name: "AI-сборщик связок",
+        desc: "+22 к силе за клик",
+        baseCost: 4200,
+        click: 22,
+        passive: 0
+      },
+      {
+        id: "nightFarm",
+        emoji: "🌙",
+        name: "Ночной фарм удачи",
+        desc: "+9 силы в секунду",
+        baseCost: 9000,
+        click: 0,
+        passive: 9
+      }
+    ];
+
+    const randomTrigger = () => 3 + Math.floor(Math.random() * 4);
+
+    const defaultState = () => ({
+      endAt: 0,
+      strength: 0,
+      owned: {},
+      lastTick: Date.now(),
+      candleClicksSincePhrase: 0,
+      nextPhraseAt: randomTrigger()
+    });
+
+    let state = loadState();
+
+    const el = {
+      candle: document.getElementById("candle"),
+      strengthBox: document.getElementById("strengthBox"),
+      strength: document.getElementById("strength"),
+      timer: document.getElementById("timer"),
+      mainBtn: document.getElementById("mainBtn"),
+      hint: document.getElementById("hint"),
+      shop: document.getElementById("shop"),
+      log: document.getElementById("log"),
+      powerBadge: document.getElementById("powerBadge"),
+      resetBtn: document.getElementById("resetBtn")
+    };
+
+    function loadState() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        const base = defaultState();
+        return parsed && typeof parsed === "object"
+          ? { ...base, ...parsed, owned: parsed.owned || {} }
+          : base;
+      } catch (_) {
+        return defaultState();
+      }
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function isActive() {
+      return Date.now() < Number(state.endAt || 0);
+    }
+
+    function getOwned(id) {
+      return Number(state.owned?.[id] || 0);
+    }
+
+    function getCost(upgrade) {
+      const owned = getOwned(upgrade.id);
+      return Math.floor(upgrade.baseCost * Math.pow(1.62, owned));
+    }
+
+    function clickPower() {
+      return upgrades.reduce((sum, item) => sum + getOwned(item.id) * item.click, 1);
+    }
+
+    function passivePower() {
+      return upgrades.reduce((sum, item) => sum + getOwned(item.id) * item.passive, 0);
+    }
+
+    function formatNumber(num) {
+      const value = Math.floor(Number(num) || 0);
+      return value.toLocaleString("ru-RU");
+    }
+
+    function formatTimer(ms) {
+      if (ms <= 0) return "—";
+      const total = Math.ceil(ms / 1000);
+      const h = Math.floor(total / 3600);
+      const m = Math.floor((total % 3600) / 60);
+      const s = total % 60;
+      if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+      return `${m}:${String(s).padStart(2, "0")}`;
+    }
+
+    function setLog(text) {
+      el.log.textContent = text;
+    }
+
+    function renderShop() {
+      el.shop.innerHTML = "";
+      upgrades.forEach((upgrade) => {
+        const cost = getCost(upgrade);
+        const owned = getOwned(upgrade.id);
+        const canBuy = isActive() && state.strength >= cost;
+
+        const btn = document.createElement("button");
+        btn.className = `upgrade ${canBuy ? "" : "locked"}`;
+        btn.innerHTML = `
+          <span class="emoji">${upgrade.emoji}</span>
+          <div class="upgrade-name">${upgrade.name}</div>
+          <div class="upgrade-desc">${upgrade.desc}</div>
+          <div class="upgrade-foot">
+            <span class="cost">${formatNumber(cost)}</span>
+            <span class="owned">ур. ${owned}</span>
+          </div>
+        `;
+        btn.addEventListener("click", () => buyUpgrade(upgrade));
+        el.shop.appendChild(btn);
+      });
+    }
+
+    function render() {
+      const active = isActive();
+      const left = Math.max(0, Number(state.endAt || 0) - Date.now());
+
+      el.candle.classList.toggle("off", !active);
+      el.strength.textContent = formatNumber(state.strength);
+      el.timer.textContent = formatTimer(left);
+      el.powerBadge.textContent = `+${formatNumber(clickPower())} / клик`;
+
+      if (active) {
+        el.mainBtn.textContent = "усилить молитву";
+        el.hint.textContent = passivePower() > 0
+          ? `пассивно капает +${passivePower().toFixed(1).replace(".", ",")} силы/сек`
+          : "кликай по свечке, чтобы накопить на первый буст";
+      } else {
+        el.mainBtn.textContent = "поставить свечку на 2 часа";
+        el.hint.textContent = "после 2 часов свечку можно поставить заново";
+      }
+
+      renderShop();
+    }
+
+    function startCandle() {
+      state.endAt = Date.now() + TWO_HOURS;
+      state.lastTick = Date.now();
+      state.candleClicksSincePhrase = 0;
+      state.nextPhraseAt = randomTrigger();
+      saveState();
+      setLog("Свечка горит. Да будет дешёвый клик и живой трафик.");
+      render();
+    }
+
+    function addStrength(amount, sourceElement, countAsCandleClick = false) {
+      if (!isActive()) {
+        startCandle();
+        return;
+      }
+      const gain = Math.max(1, Math.floor(amount));
+      state.strength += gain;
+
+      if (countAsCandleClick) {
+        state.candleClicksSincePhrase = Number(state.candleClicksSincePhrase || 0) + 1;
+        if (state.candleClicksSincePhrase >= Number(state.nextPhraseAt || 3)) {
+          showRitualPhrase(sourceElement || el.candle);
+          state.candleClicksSincePhrase = 0;
+          state.nextPhraseAt = randomTrigger();
+        }
+      }
+
+      saveState();
+      pop(`+${formatNumber(gain)}`, sourceElement || el.candle);
+      render();
+    }
+
+    function showRitualPhrase(target) {
+      const phrase = ritualPhrases[Math.floor(Math.random() * ritualPhrases.length)];
+      setLog(phrase);
+      eventPop(phrase, target);
+    }
+
+    function buyUpgrade(upgrade) {
+      if (!isActive()) {
+        setLog("Сначала поставь свечку, магазинчик проснётся вместе с ней.");
+        return;
+      }
+      const cost = getCost(upgrade);
+      if (state.strength < cost) {
+        setLog(`Не хватает силы: нужно ${formatNumber(cost)}.`);
+        return;
+      }
+      state.strength -= cost;
+      state.owned[upgrade.id] = getOwned(upgrade.id) + 1;
+      saveState();
+      setLog(`${upgrade.name} куплен. Алгоритмы чуть добрее.`);
+      render();
+    }
+
+    function pop(text, target) {
+      const rect = target.getBoundingClientRect();
+      const parentRect = document.body.getBoundingClientRect();
+      const node = document.createElement("div");
+      node.className = "click-pop";
+      node.textContent = text;
+      node.style.left = `${rect.left - parentRect.left + rect.width / 2 + (Math.random() * 48 - 24)}px`;
+      node.style.top = `${rect.top - parentRect.top + rect.height * 0.25 + (Math.random() * 20 - 10)}px`;
+      document.body.appendChild(node);
+      setTimeout(() => node.remove(), 820);
+    }
+
+    function eventPop(text, target) {
+      const rect = target.getBoundingClientRect();
+      const parentRect = document.body.getBoundingClientRect();
+      const node = document.createElement("div");
+      node.className = "event-pop";
+      node.textContent = text;
+      node.style.left = `${rect.left - parentRect.left + rect.width / 2}px`;
+      node.style.top = `${rect.top - parentRect.top + rect.height * 0.04}px`;
+      document.body.appendChild(node);
+      setTimeout(() => node.remove(), 1750);
+    }
+
+    function tick() {
+      const now = Date.now();
+      const active = isActive();
+
+      if (active) {
+        const elapsed = Math.max(0, (now - Number(state.lastTick || now)) / 1000);
+        const passive = passivePower();
+        if (passive > 0 && elapsed > 0) {
+          state.strength += passive * elapsed;
+        }
+      }
+
+      state.lastTick = now;
+      saveState();
+      render();
+    }
+
+    el.candle.addEventListener("click", () => addStrength(clickPower(), el.candle, true));
+    el.strengthBox.addEventListener("click", () => addStrength(clickPower(), el.strengthBox, false));
+    el.mainBtn.addEventListener("click", () => {
+      if (isActive()) addStrength(clickPower(), el.mainBtn, false);
+      else startCandle();
+    });
+
+    el.candle.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        addStrength(clickPower(), el.candle, true);
+      }
+    });
+
+    el.strengthBox.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        addStrength(clickPower(), el.strengthBox, false);
+      }
+    });
+
+    el.resetBtn.addEventListener("click", () => {
+      state = defaultState();
+      saveState();
+      setLog("Ритуал очищен. Можно начинать заново.");
+      render();
+    });
+
+    window.addEventListener("beforeunload", () => {
+      state.lastTick = Date.now();
+      saveState();
+    });
+
+    tick();
+    setInterval(tick, 1000);
+  </script>
+</body>
+</html>
