@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Свечка за трафик</title>
+  <style>
+    :root {
+      --bg: #080808;
+      --panel: rgba(255,255,255,.055);
+      --line: rgba(255,255,255,.12);
+      --text: #f7f0df;
+      --muted: rgba(247,240,223,.58);
+      --gold: #f6c35f;
+      --amber: #ff8a2a;
+      --deep: #1a0d06;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      min-height: 100%;
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 50% 32%, rgba(246,195,95,.16), transparent 31%),
+        radial-gradient(circle at 50% 70%, rgba(255,138,42,.08), transparent 30%),
+        linear-gradient(160deg, #050505 0%, #0c0907 48%, #030303 100%);
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+      background-size: 52px 52px;
+      mask-image: radial-gradient(circle at center, black 0%, transparent 78%);
+    }
+
+    main {
+      min-height: 100svh;
+      display: grid;
+      place-items: center;
+      padding: 28px;
+    }
+
+    .app {
+      width: min(420px, 100%);
+      min-height: 640px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      padding: 34px 26px 28px;
+      border: 1px solid var(--line);
+      border-radius: 34px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.028)),
+        rgba(10, 8, 7, .72);
+      box-shadow:
+        0 40px 120px rgba(0,0,0,.62),
+        inset 0 1px 0 rgba(255,255,255,.09);
+      backdrop-filter: blur(22px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .app::after {
+      content: "";
+      position: absolute;
+      inset: 1px;
+      border-radius: 33px;
+      background: radial-gradient(circle at 50% 34%, rgba(246,195,95,.12), transparent 42%);
+      opacity: 0;
+      transition: opacity .6s ease;
+      pointer-events: none;
+    }
+
+    .app.active::after { opacity: 1; }
+
+    .top {
+      width: 100%;
+      text-align: center;
+      z-index: 2;
+    }
+
+    .kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border: 1px solid rgba(246,195,95,.18);
+      border-radius: 999px;
+      color: rgba(247,240,223,.74);
+      background: rgba(246,195,95,.055);
+      font-size: 12px;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba(247,240,223,.36);
+      box-shadow: none;
+      transition: .35s ease;
+    }
+
+    .active .dot {
+      background: var(--gold);
+      box-shadow: 0 0 18px var(--gold);
+      animation: pulse 1.8s infinite;
+    }
+
+    h1 {
+      margin: 24px 0 10px;
+      font-weight: 650;
+      font-size: clamp(36px, 10vw, 52px);
+      line-height: .9;
+      letter-spacing: -.07em;
+    }
+
+    .subtitle {
+      margin: 0 auto;
+      max-width: 290px;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.45;
+    }
+
+    .altar {
+      z-index: 2;
+      width: 100%;
+      flex: 1;
+      display: grid;
+      place-items: center;
+      position: relative;
+      margin: 24px 0 10px;
+    }
+
+    .glow {
+      position: absolute;
+      width: 270px;
+      height: 270px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(246,195,95,.22), rgba(246,195,95,.07) 34%, transparent 67%);
+      filter: blur(7px);
+      opacity: .12;
+      transform: translateY(-22px) scale(.9);
+      transition: .7s ease;
+    }
+
+    .active .glow {
+      opacity: 1;
+      transform: translateY(-36px) scale(1.08);
+      animation: breathe 3.4s ease-in-out infinite;
+    }
+
+    .candle-wrap {
+      position: relative;
+      width: 154px;
+      height: 270px;
+      display: grid;
+      place-items: end center;
+      transform: translateY(8px);
+    }
+
+    .flame {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      width: 46px;
+      height: 74px;
+      transform: translateX(-50%) scale(.35);
+      opacity: 0;
+      border-radius: 52% 48% 54% 46% / 68% 68% 32% 32%;
+      background:
+        radial-gradient(circle at 50% 72%, #fff6c8 0 11%, transparent 12%),
+        radial-gradient(circle at 50% 58%, #ffe28a 0 26%, transparent 27%),
+        linear-gradient(180deg, #ffe7a8 0%, #ff9b2f 52%, #e94f1c 100%);
+      box-shadow:
+        0 0 22px rgba(246,195,95,.9),
+        0 0 58px rgba(255,138,42,.55),
+        0 0 96px rgba(255,138,42,.28);
+      transform-origin: 50% 92%;
+      filter: blur(.1px);
+      transition: .55s cubic-bezier(.2,.8,.2,1);
+    }
+
+    .active .flame {
+      opacity: 1;
+      transform: translateX(-50%) scale(1);
+      animation: flicker 2.1s ease-in-out infinite alternate;
+    }
+
+    .wick {
+      position: absolute;
+      top: 88px;
+      left: 50%;
+      width: 5px;
+      height: 26px;
+      border-radius: 999px;
+      background: #17100c;
+      transform: translateX(-50%) rotate(6deg);
+      z-index: 2;
+    }
+
+    .candle {
+      position: relative;
+      width: 112px;
+      height: 176px;
+      border-radius: 28px 28px 20px 20px;
+      background:
+        radial-gradient(circle at 35% 18%, rgba(255,255,255,.46), transparent 15%),
+        linear-gradient(90deg, #d8c6a0 0%, #fff0c7 18%, #f3dba9 53%, #b99b6b 100%);
+      box-shadow:
+        inset 16px 0 24px rgba(255,255,255,.12),
+        inset -14px 0 25px rgba(60,30,8,.18),
+        0 26px 52px rgba(0,0,0,.38);
+      overflow: hidden;
+    }
+
+    .candle::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: -17px;
+      width: 112px;
+      height: 38px;
+      border-radius: 50%;
+      background: linear-gradient(180deg, #fff3ce, #d4b982);
+      border: 1px solid rgba(70,43,18,.16);
+    }
+
+    .candle::after {
+      content: "";
+      position: absolute;
+      top: 58px;
+      left: 26px;
+      width: 16px;
+      height: 58px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.28);
+      filter: blur(3px);
+    }
+
+    .melt {
+      position: absolute;
+      top: 0;
+      right: 23px;
+      width: 14px;
+      height: 82px;
+      border-radius: 0 0 999px 999px;
+      background: linear-gradient(180deg, rgba(255,248,219,.86), rgba(246,216,162,.7));
+      opacity: .6;
+    }
+
+    .plate {
+      width: 190px;
+      height: 28px;
+      border-radius: 50%;
+      margin-top: -8px;
+      background: radial-gradient(ellipse at center, rgba(246,195,95,.2), rgba(255,255,255,.055) 45%, rgba(255,255,255,.015) 72%);
+      border: 1px solid rgba(255,255,255,.08);
+      box-shadow: 0 18px 35px rgba(0,0,0,.35);
+    }
+
+    .bottom {
+      z-index: 2;
+      width: 100%;
+      display: grid;
+      gap: 16px;
+    }
+
+    .timer-box {
+      min-height: 82px;
+      padding: 18px;
+      border: 1px solid rgba(255,255,255,.09);
+      border-radius: 24px;
+      background: rgba(0,0,0,.18);
+      text-align: center;
+    }
+
+    .label {
+      margin-bottom: 6px;
+      color: rgba(247,240,223,.48);
+      font-size: 12px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .timer {
+      font-variant-numeric: tabular-nums;
+      font-size: 34px;
+      font-weight: 680;
+      letter-spacing: -.04em;
+    }
+
+    button {
+      appearance: none;
+      border: 0;
+      width: 100%;
+      min-height: 62px;
+      border-radius: 22px;
+      color: #17100b;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(255,255,255,.75), transparent 36%),
+        linear-gradient(135deg, #fff0be, #f6c35f 45%, #ff9c38 100%);
+      box-shadow:
+        0 18px 48px rgba(246,195,95,.22),
+        inset 0 1px 0 rgba(255,255,255,.55);
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 760;
+      letter-spacing: -.02em;
+      transition: transform .18s ease, filter .18s ease, opacity .2s ease;
+    }
+
+    button:hover { transform: translateY(-1px); filter: brightness(1.04); }
+    button:active { transform: translateY(1px) scale(.99); }
+    button:disabled {
+      cursor: default;
+      opacity: .42;
+      filter: grayscale(.7);
+      transform: none;
+    }
+
+    .status {
+      min-height: 20px;
+      color: rgba(247,240,223,.42);
+      text-align: center;
+      font-size: 13px;
+    }
+
+    .sparks {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .6s ease;
+    }
+
+    .active .sparks { opacity: 1; }
+
+    .spark {
+      position: absolute;
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: rgba(246,195,95,.8);
+      animation: floatUp linear infinite;
+    }
+
+    .spark:nth-child(1) { left: 24%; bottom: 28%; animation-duration: 5.3s; animation-delay: -.8s; }
+    .spark:nth-child(2) { left: 67%; bottom: 24%; animation-duration: 6.2s; animation-delay: -2.4s; }
+    .spark:nth-child(3) { left: 47%; bottom: 35%; animation-duration: 4.6s; animation-delay: -1.6s; }
+    .spark:nth-child(4) { left: 76%; bottom: 39%; animation-duration: 7s; animation-delay: -3.4s; }
+    .spark:nth-child(5) { left: 31%; bottom: 44%; animation-duration: 6.7s; animation-delay: -4.2s; }
+
+    @keyframes flicker {
+      0% { border-radius: 50% 50% 56% 44% / 68% 70% 30% 32%; transform: translateX(-50%) rotate(-2deg) scale(1); }
+      35% { transform: translateX(-51%) rotate(2deg) scale(1.04, .96); }
+      70% { transform: translateX(-49%) rotate(-1deg) scale(.96, 1.05); }
+      100% { border-radius: 58% 42% 52% 48% / 70% 64% 36% 30%; transform: translateX(-50%) rotate(2.5deg) scale(1.02); }
+    }
+
+    @keyframes breathe {
+      0%, 100% { filter: blur(7px); transform: translateY(-36px) scale(1.04); }
+      50% { filter: blur(12px); transform: translateY(-38px) scale(1.14); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: .8; }
+      50% { transform: scale(1.45); opacity: 1; }
+    }
+
+    @keyframes floatUp {
+      0% { transform: translateY(0) scale(.4); opacity: 0; }
+      18% { opacity: .75; }
+      100% { transform: translateY(-260px) scale(1); opacity: 0; }
+    }
+
+    @media (max-height: 720px) {
+      .app { min-height: 590px; }
+      .candle-wrap { height: 245px; transform: scale(.92) translateY(8px); }
+      h1 { font-size: 40px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="app" id="app" aria-live="polite">
+      <div class="sparks" aria-hidden="true">
+        <span class="spark"></span><span class="spark"></span><span class="spark"></span><span class="spark"></span><span class="spark"></span>
+      </div>
+
+      <header class="top">
+        <div class="kicker"><span class="dot"></span><span id="kickerText">ритуал не активен</span></div>
+        <h1>Свечка<br>за трафик</h1>
+        <p class="subtitle" id="subtitle">Один клик — и пусть алгоритмы сегодня будут добрее.</p>
+      </header>
+
+      <div class="altar" aria-hidden="true">
+        <div class="glow"></div>
+        <div>
+          <div class="candle-wrap">
+            <div class="flame"></div>
+            <div class="wick"></div>
+            <div class="candle"><div class="melt"></div></div>
+          </div>
+          <div class="plate"></div>
+        </div>
+      </div>
+
+      <footer class="bottom">
+        <div class="timer-box">
+          <div class="label" id="timerLabel">время действия</div>
+          <div class="timer" id="timer">02:00:00</div>
+        </div>
+        <button id="lightButton" type="button">Поставить свечку</button>
+        <div class="status" id="status">свеча будет гореть ровно 2 часа</div>
+      </footer>
+    </section>
+  </main>
+
+  <script>
+    const DURATION_MS = 2 * 60 * 60 * 1000;
+    const STORAGE_KEY = "traffic_candle_end_at";
+
+    const app = document.getElementById("app");
+    const button = document.getElementById("lightButton");
+    const timer = document.getElementById("timer");
+    const status = document.getElementById("status");
+    const kickerText = document.getElementById("kickerText");
+    const subtitle = document.getElementById("subtitle");
+    const timerLabel = document.getElementById("timerLabel");
+
+    const formatTime = (ms) => {
+      const total = Math.max(0, Math.ceil(ms / 1000));
+      const hours = Math.floor(total / 3600);
+      const minutes = Math.floor((total % 3600) / 60);
+      const seconds = total % 60;
+      return [hours, minutes, seconds].map(String).map(v => v.padStart(2, "0")).join(":");
+    };
+
+    const getEndAt = () => Number(localStorage.getItem(STORAGE_KEY) || 0);
+
+    const setIdle = () => {
+      app.classList.remove("active");
+      timer.textContent = "02:00:00";
+      button.disabled = false;
+      button.textContent = "Поставить свечку";
+      status.textContent = "свеча будет гореть ровно 2 часа";
+      kickerText.textContent = "ритуал не активен";
+      subtitle.textContent = "Один клик — и пусть алгоритмы сегодня будут добрее.";
+      timerLabel.textContent = "время действия";
+      localStorage.removeItem(STORAGE_KEY);
+    };
+
+    const setActive = (remaining) => {
+      app.classList.add("active");
+      timer.textContent = formatTime(remaining);
+      button.disabled = true;
+      button.textContent = "Свечка уже горит";
+      status.textContent = "трафик под присмотром";
+      kickerText.textContent = "ритуал активен";
+      subtitle.textContent = "Свечка горит. Кампании держатся. Лиды идут.";
+      timerLabel.textContent = "осталось";
+    };
+
+    const tick = () => {
+      const endAt = getEndAt();
+      const remaining = endAt - Date.now();
+      if (remaining > 0) setActive(remaining);
+      else setIdle();
+    };
+
+    button.addEventListener("click", () => {
+      localStorage.setItem(STORAGE_KEY, String(Date.now() + DURATION_MS));
+      tick();
+    });
+
+    tick();
+    setInterval(tick, 500);
+  </script>
+</body>
+</html>
